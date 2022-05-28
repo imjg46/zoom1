@@ -10,8 +10,11 @@ html(lang="en")
         header 
             h1 mooZ v1
         main
+            form#nick
+                input(type="text", placeholder="Anonymous")
+                button Save 
             ul 
-            form
+            form#message
                 input(type="text", placeholder="Type message..!", required)
                 button Send 
         script(src="/public/js/app.js")
