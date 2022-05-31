@@ -39,6 +39,9 @@ function handleMessageSumbit(event){ //메시지 전송 (=handleSubmit)
     event.preventDefault();
     const input = messageForm.querySelector("input");
     socket.send(makeMessage("message", input.value));
+    const li = document.createElement("li"); //내가 보낸 메시지만 다르게 표시
+    li.innerText = `YOU: ${input.value}`;
+    messageList.append(li);
     input.value = "";
 }
 
