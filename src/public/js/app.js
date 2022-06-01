@@ -1,55 +1,65 @@
-const messageList = document.querySelector("ul");
-const nickForm = document.querySelector("form#nick"); //#nick
-const messageForm = document.querySelector("form#message"); //#message
-const socket = new WebSocket(`ws://${window.location.host}`);
+const socket = io();
 
-function makeMessage(type, payload){
-    const msg = { type, payload };
-    return JSON.stringify(msg); //JSObject를 String으로 변경
+const welcome = document.getElementById("welcome");
+const form = welcome.querySelector("form");
+const room = document.getElementById("room");
+
+room.hidden = true;
+
+let roomName;
+
+function addMessage(msg){
+    const ul = room.querySelector("ul");
+    const li = document.createElement("li");
+    li.innerText = msg;
+    ul.appendChild(li);
 }
 
-socket.addEventListener("open", (open) => { //BackEnd와 연결될때
-    console.log("✅ Connected to server!");
-    nickForm.querySelector("input").value = ""; //****왜그런진 모르겠는데 새로고침 하니까 입력창엔 뜨는데 적용은 안되서 이렇게 둠 ****/
-});
+function showRoom(){
+    welcome.hidden = true;
+    room.hidden = false;
+    const h2 = room.querySelector("h2");
+    h2.innerText = `Room ${roomName}!`;
+    const msgForm = room.querySelector("#msg");
+    const nickForm = room.querySelector("#nick");
+    msgForm.addEventListener("submit", handleMessageSubmit);
+    nickForm.addEventListener("submit", handleNickSubmit);
+}
 
-// socket.addEventListener("message", async (event) => { //BackEnd에서 메시지 올때  // #1.8에서 안되서 바꿈
-//     //console.log("💌 MSG: " + await event.data.text()); //ws버전8되면서,    https://nomadcoders.co/noom/lectures/3091
-//     const li = document.createElement("li"); //메시지 화면에 표시
-//     //li.innerText = await event.data.text();
-//     li.innerText = "working";
-//     messageList.append(li);
-// });
+function handleNickSubmit(e){
+    e.preventDefault();
+    const input = room.querySelector("#nick input");
+    const inputvalue = input.value;
+    socket.emit("nick_change", inputvalue);
+    //input.value = "";
+}
 
-socket.addEventListener("message", (message) => { //BackEnd에서 메시지 올때
-    const li = document.createElement("li");
-    li.innerText = message.data;
-    messageList.append(li);
-  });
-
-socket.addEventListener("close", () => { //BackEnd와 연결 끊길때
-    console.log("❌ Disconnected from server!");
-});
-
-// setTimeout(() => {
-//     socket.send("hello from browser!"); //메시지 BackEnd로 보내기
-// }, 5000)
-
-function handleMessageSumbit(event){ //메시지 전송 (=handleSubmit)
-    event.preventDefault();
-    const input = messageForm.querySelector("input");
-    socket.send(makeMessage("message", input.value));
-    const li = document.createElement("li"); //내가 보낸 메시지만 다르게 표시
-    li.innerText = `YOU: ${input.value}`;
-    messageList.append(li);
+function handleMessageSubmit(e){
+    e.preventDefault();
+    const input = room.querySelector("#msg input");
+    const inputvalue = input.value;
+    socket.emit("new_message", input.value, roomName, () => {
+        addMessage(`You: ${inputvalue}`);
+    });
     input.value = "";
 }
 
-function handleNickSubmit(event){ //닉네임 변경
-    event.preventDefault();
-    const input = nickForm.querySelector("input");
-    socket.send(makeMessage("nickname", input.value));
+function handleRoomSubmit(e){
+    e.preventDefault();
+    const input = form.querySelector("input");
+    socket.emit("enter_room", input.value, showRoom);
+    roomName = input.value;
+    input.value = "";
 }
 
-messageForm.addEventListener("submit", handleMessageSumbit);
-nickForm.addEventListener("submit", handleNickSubmit);
+form.addEventListener("submit", handleRoomSubmit);
+
+socket.on("userjoined", (userName) => {
+    addMessage(`${userName} joined.`);
+});
+
+socket.on("userleft", (userName) => {
+    addMessage(`${userName} left.`);
+});
+
+socket.on("new_message", addMessage);

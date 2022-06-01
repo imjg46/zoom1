@@ -1,8 +1,8 @@
+//WebSocket -> Socket.IO
 import express from "express";
 import http from "http";
-import WebSocket, {WebSocketServer}  from "ws";
+import { Server } from "socket.io";
 import path from "path";
-//import { type } from "express/lib/response";
 const __dirname = path.resolve();
 const app = express();
 
@@ -12,39 +12,27 @@ app.use("/public", express.static(__dirname + "/src/public"));
 app.get("/", (_, res) => res.render("home"));
 app.get("/*", (_, res) => res.redirect("/")); // example.com/abc 접속시, example.com으로 이동
 
-const handleListen = () => console.log(`😀 Listening on http://localhost:3000`);
-//app.listen(3000, handleListen); //express는 WebSocket지원 안함
-const server = http.createServer(app); //HTTP SERVER
-const wss = new WebSocketServer( { server } ); //WEBSOCKET SERVER + http서버와 같이 (항상 필요 x)
+const httpServer = http.createServer(app); //HTTP SERVER
+const wsServer = new Server(httpServer); //Socket.IO
 
-const sockets_ = [];
-
-wss.on("connection", (socket, req) => { //FrontEnd와 연결될때
-    const ip = req.socket.remoteAddress; //사용자ip 얻기
-    sockets_.push(socket); //socket을 받을때 sockets[]에 넣기
+wsServer.on("connection", socket => {
     socket["nickname"] = "Anonymous";
-    console.log("✅ Connected to browser! ("+ip+")");
-    socket.on("close", () => { //FrontEnd와 연결 끊길때
-        console.log("❌ Disconnected from browser!");
+    socket.on("enter_room", (roomName, done) => {
+        socket.join(roomName);
+        done();
+        socket.to(roomName).emit("userjoined", socket.nickname);
+        //console.log(`Entered Room: ${socket.rooms.toString()}`);
     });
-    socket.on("message", (msg) => { //FrontEnd로부터 메시지 올때
-        //socket.send(message); //메시지 FrontEnd로 보내주기
-        const parsed_msg = JSON.parse(msg); //JSON -> JavaScript Object
-        //console.log(parsed_msg.type+":"+parsed_msg.payload);
-        switch(parsed_msg.type){
-            case "message":
-                sockets_.forEach((aSocket) => 
-                    aSocket.send(`${socket.nickname}: ${parsed_msg.payload}`)
-                );
-                break;
-            case "nickname":
-                socket["nickname"] = parsed_msg.payload; //socket["nickname"]에 닉네임 저장
-                break;
-        }
-        //console.log("💌 MSG: " + message.toString());
+    socket.on("disconnecting", () => { //disconnect X (disconnecting = 연결이 끊어지려고 할때/ 끊어지진 않음. ex창 닫음)
+        socket.rooms.forEach((room) => 
+            socket.to(room).emit("userleft", socket.nickname));
     });
+    socket.on("new_message", (msg, roomName, done) => {
+        socket.to(roomName).emit("new_message", `${socket.nickname}: ${msg}`);
+        done();
+    });
+    socket.on("nick_change", (nickName) => socket["nickname"] = nickName    );
+});//////wsServer.on [END]//////
 
-    //socket.send("hello"); //메시지 FrontEnd로 보내기
-});
-
-server.listen(3000, handleListen);
+const handleListen = () => console.log(`😀 Listening on http://localhost:3000`);
+httpServer.listen(3000, handleListen);
