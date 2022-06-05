@@ -3,10 +3,11 @@ const socket = io();
 const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("form");
 const room = document.getElementById("room");
+//const nickForm = room.querySelector("#nick");
 
 room.hidden = true;
 
-let roomName;
+let roomName, nickName;
 
 function addMessage(msg){
     const ul = room.querySelector("ul");
@@ -19,26 +20,25 @@ function showRoom(){
     welcome.hidden = true;
     room.hidden = false;
     const h2 = room.querySelector("h2");
-    h2.innerText = `Room ${roomName}!`;
+    h2.innerText = `${roomName} Room (${nickName})`;
+    //const span = room.querySelector("span");
+    //span.innerText `Nickname: ${nickName}`;
     const msgForm = room.querySelector("#msg");
-    const nickForm = room.querySelector("#nick");
     msgForm.addEventListener("submit", handleMessageSubmit);
-    nickForm.addEventListener("submit", handleNickSubmit);
 }
 
-function handleNickSubmit(e){
-    e.preventDefault();
-    const input = room.querySelector("#nick input");
-    const inputvalue = input.value;
-    socket.emit("nick_change", inputvalue);
-    //input.value = "";
-}
+// function handleNickSubmit(e){
+//     e.preventDefault();
+//     const input = welcome.querySelector("#nick input");
+//     socket.emit("nick_change", input.value);
+//     //input.value = "";
+// }
 
 function handleMessageSubmit(e){
     e.preventDefault();
     const input = room.querySelector("#msg input");
     const inputvalue = input.value;
-    socket.emit("new_message", input.value, roomName, () => {
+    socket.emit("new_message", inputvalue, roomName, () => {   
         addMessage(`You: ${inputvalue}`);
     });
     input.value = "";
@@ -46,10 +46,14 @@ function handleMessageSubmit(e){
 
 function handleRoomSubmit(e){
     e.preventDefault();
-    const input = form.querySelector("input");
-    socket.emit("enter_room", input.value, showRoom);
-    roomName = input.value;
-    input.value = "";
+    const inputRoomName = form.querySelector("#roomname");
+    const inputNickName = form.querySelector("#nickname");
+    roomName = inputRoomName.value;
+    nickName = inputNickName.value;
+    //console.log(roomName+" / "+nickName);
+    socket.emit("enter_room", roomName, nickName, showRoom);
+    inputRoomName.value = "";
+    inputNickName.value = "";
 }
 
 form.addEventListener("submit", handleRoomSubmit);

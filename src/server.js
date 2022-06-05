@@ -16,12 +16,17 @@ const httpServer = http.createServer(app); //HTTP SERVER
 const wsServer = new Server(httpServer); //Socket.IO
 
 wsServer.on("connection", socket => {
-    socket["nickname"] = "Anonymous";
-    socket.on("enter_room", (roomName, done) => {
+    socket.on("enter_room", (roomName, nickName, done) => {
         socket.join(roomName);
+        socket["nickname"] = nickName;
+        // if(nickName!=""){
+        //     socket["nickname"] = nickName;
+        // }else{
+        //     socket["nickname"] = "Anonymous";
+        // }   
         done();
         socket.to(roomName).emit("userjoined", socket.nickname);
-        //console.log(`Entered Room: ${socket.rooms.toString()}`);
+        //console.log(`Entered with ${socket.nickname}`);
     });
     socket.on("disconnecting", () => { //disconnect X (disconnecting = 연결이 끊어지려고 할때/ 끊어지진 않음. ex창 닫음)
         socket.rooms.forEach((room) => 
