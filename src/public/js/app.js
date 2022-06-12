@@ -67,3 +67,5 @@ socket.on("userleft", (userName) => {
 });
 
 socket.on("new_message", addMessage);
+
+socket.on("room_change", console.log);

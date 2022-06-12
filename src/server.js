@@ -15,28 +15,43 @@ app.get("/*", (_, res) => res.redirect("/")); // example.com/abc 접속시, exam
 const httpServer = http.createServer(app); //HTTP SERVER
 const wsServer = new Server(httpServer); //Socket.IO
 
+function publicRooms(){
+    const {
+        sockets: {
+            adapter: {sids,rooms},
+        },
+    } = wsServer;
+    const publicRooms = [];
+    rooms.forEach((_, key) => {
+        if(sids.get(key) == undefined){
+            publicRooms.push(key);
+        }
+    });
+    return publicRooms;
+}
+
 wsServer.on("connection", socket => {
     socket.on("enter_room", (roomName, nickName, done) => {
         socket.join(roomName);
         socket["nickname"] = nickName;
-        // if(nickName!=""){
-        //     socket["nickname"] = nickName;
-        // }else{
-        //     socket["nickname"] = "Anonymous";
-        // }   
         done();
         socket.to(roomName).emit("userjoined", socket.nickname);
-        //console.log(`Entered with ${socket.nickname}`);
+        wsServer.sockets.emit("room_change", publicRooms());
     });
     socket.on("disconnecting", () => { //disconnect X (disconnecting = 연결이 끊어지려고 할때/ 끊어지진 않음. ex창 닫음)
         socket.rooms.forEach((room) => 
-            socket.to(room).emit("userleft", socket.nickname));
+            socket.to(room).emit("userleft", socket.nickname)
+        );
+        
+    });
+    socket.on("disconnected", () =>{
+        wsServer.sockets.emit("room_change", publicRooms());
     });
     socket.on("new_message", (msg, roomName, done) => {
         socket.to(roomName).emit("new_message", `${socket.nickname}: ${msg}`);
         done();
     });
-    socket.on("nick_change", (nickName) => socket["nickname"] = nickName    );
+    socket.on("nick_change", (nickName) => socket["nickname"] = nickName);
 });//////wsServer.on [END]//////
 
 const handleListen = () => console.log(`😀 Listening on http://localhost:3000`);
