@@ -10,16 +10,5 @@ html(lang="en")
         header 
             h1 mooZ v1
         main
-            div#welcome
-                form
-                    input#roomname(placeholder="RoomName", required, type="text")
-                    input#nickname(placeholder="NickName", type="text")
-                    button Enter Room
-            div#room 
-                h2
-                ul
-                form#msg
-                    input(placeholder="Message", required, type="text")
-                    button Send
         script(src="/socket.io/socket.io.js")
         script(src="/public/js/app.js")
